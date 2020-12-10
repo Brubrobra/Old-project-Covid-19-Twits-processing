@@ -1,5 +1,9 @@
 /*
 Preprocess takes our data and processes it to a more readable form for spark.
+
+spark-submit --class ca.uwaterloo.cs451.COVID19Predictor.Preprocess \\ 
+    target/finalproject-1.0.jar --input data/twitter --output data/processed
+
 Coded by: Calder Lund
 */
 
@@ -11,6 +15,7 @@ import org.apache.hadoop.fs._
 import org.rogach.scallop._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.IntegerType
 
 
 object Preprocess {
@@ -34,30 +39,48 @@ object Preprocess {
       .appName("Preprocess")
       .getOrCreate()
 
+    spark.conf.set("spark.sql.pivotMaxValues", 20000)
+
     val baseNameOfFile = udf((longFilePath: String) => FilenameUtils.getBaseName(longFilePath).substring(0, 10))
 
     var termsDF = spark.read.option("header", "false")
       .csv(args.input() + "/*/*_top1000terms.csv")
-      .withColumnRenamed("_c0", "term")
-      .withColumnRenamed("_c1", "amount")
+      .withColumnRenamed("_c0", "gram")
+      .withColumnRenamed("_c1", "counts")
+      .withColumn("counts", col("counts").cast(IntegerType))
       .withColumn("date", baseNameOfFile(input_file_name))
-      .write.option("header","true")
+      .filter(col("gram").isin("covid19", "coronavirus", "fake", "hoax", "trump", "schools", "canada", 
+                               "distancing", "rules", "masks", "deaths", "cases", "rise", "rising", 
+                               "covid", "corona", "virus", "epidemic", "business", "economy", "closing",
+                               "reopening", "reopen", "close", "regulations", "strict"))
+      .groupBy("date")
+      .pivot("gram")
+      .max("counts")
+      .write.option("header", "true")
       .csv(args.output() + "/terms")
 
-    var bigramsDF = spark.read.option("header", "true")
+    val bigramsDF = spark.read.option("header", "true")
       .csv(args.input() + "/*/*_top1000bigrams.csv")
-      .withColumnRenamed("_c0", "bigram")
-      .withColumnRenamed("_c1", "amount")
+      .withColumn("counts", col("counts").cast(IntegerType))
       .withColumn("date", baseNameOfFile(input_file_name))
-      .write.option("header","true")
+      .filter(col("gram").contains("covid") || col("gram").contains("corona") || col("gram").contains("fake") || 
+              col("gram").contains("hoax") || col("gram").contains("distancing") || col("gram").contains("virus"))
+      .groupBy("date")
+      .pivot("gram")
+      .max("counts")
+      .write.option("header", "true")
       .csv(args.output() + "/bigrams")
 
-    var trigramsDF = spark.read.option("header", "true")
+    val trigramsDF = spark.read.option("header", "true")
       .csv(args.input() + "/*/*_top1000trigrams.csv")
-      .withColumnRenamed("_c0", "trigram")
-      .withColumnRenamed("_c1", "amount")
+      .withColumn("counts", col("counts").cast(IntegerType))
       .withColumn("date", baseNameOfFile(input_file_name))
-      .write.option("header","true")
+      .filter(col("gram").contains("covid") || col("gram").contains("corona") || col("gram").contains("fake") || 
+              col("gram").contains("hoax") || col("gram").contains("distancing") || col("gram").contains("virus"))
+      .groupBy("date")
+      .pivot("gram")
+      .max("counts")
+      .write.option("header", "true")
       .csv(args.output() + "/trigrams")
   }
 }
