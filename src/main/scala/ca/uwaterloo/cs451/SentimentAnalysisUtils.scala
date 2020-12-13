@@ -6,7 +6,6 @@ import edu.stanford.nlp.ling.CoreAnnotations
 import edu.stanford.nlp.neural.rnn.RNNCoreAnnotations
 import edu.stanford.nlp.pipeline.StanfordCoreNLP
 import edu.stanford.nlp.sentiment.SentimentCoreAnnotations
-//import edu.stanford.nlp.sentiment.SentimentCoreAnnotations.AnnotatedTree
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 
@@ -65,9 +64,6 @@ object SentimentAnalysisUtils {
     println("debug: main: " + mainSentiment)
     println("debug: avg: " + averageSentiment)
     println("debug: weighted: " + weightedSentiment)
-
-   
-
     
      0 -> very negative
      1 -> negative
